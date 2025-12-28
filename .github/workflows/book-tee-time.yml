@@ -1,9 +1,11 @@
 name: Book Tee Time
 
 on:
+  # Automated weekly run
   schedule:
     # Monday evening (pre-warm before 8 PM local)
-    - cron: '58 1 * * 2'  # 7:58 PM CST Monday ≈ 01:58 UTC Tuesday
+    # 7:58 PM CST Monday ≈ 01:58 UTC Tuesday
+    - cron: '58 1 * * 2'
 
   # Manual runs with overrides
   workflow_dispatch:
@@ -58,16 +60,16 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release
 
-      - name: Install Playwright Chromium
-        run: pwsh bin/Release/net8.0/playwright.ps1 install chromium
+      - name: Install Playwright Chromium (with deps)
+        run: pwsh bin/Release/net8.0/playwright.ps1 install --with-deps chromium
 
       - name: Run Tee Time Bot
         env:
-          # Credentials
+          # Credentials (GitHub Secrets)
           USERNAME: ${{ secrets.USERNAME }}
           PASSWORD: ${{ secrets.PASSWORD }}
 
-          # Config-driven options
+          # Config-driven behavior
           GOLF_DAYS: ${{ inputs.golf_days || 'Saturday' }}
           START_TIME: ${{ inputs.start_time || '07:30 am' }}
           PLAYERS: ${{ inputs.players || '4' }}
@@ -77,3 +79,10 @@ jobs:
           TEST_DATE: ${{ inputs.test_date }}
 
         run: dotnet run --configuration Release
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: "*.png"

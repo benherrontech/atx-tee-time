@@ -34,16 +34,31 @@ public class Program
         var context = await browser.NewContextAsync();
         var page = await context.NewPageAsync();
 
-        await page.GotoAsync(LoginUrl);
-        await LoginAsync(page);
-
-        foreach (var day in GetRequestedDays())
+        try
         {
-            if (await TryBookDayAsync(page, day))
-                break;
-        }
+            await page.GotoAsync(LoginUrl);
+            await LoginAsync(page);
 
-        Console.WriteLine("Run complete.");
+            foreach (var day in GetRequestedDays())
+            {
+                if (await TryBookDayAsync(page, day))
+                {
+                    break;
+                }
+            }
+
+            Console.WriteLine("Run complete.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Unhandled exception:");
+            Console.WriteLine(ex);
+            throw;
+        }
+        finally
+        {
+            await CaptureFinalScreenshotAsync(page);
+        }
     }
 
     // -------------------------------------------------
@@ -223,6 +238,27 @@ public class Program
                 $"{kvp.Key}={Uri.EscapeDataString(kvp.Value)}"));
 
         return $"{SearchBaseUrl}?{qs}";
+    }
+
+    static async Task CaptureFinalScreenshotAsync(IPage page)
+    {
+        try
+        {
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
+            var path = $"final-{timestamp}.png";
+
+            await page.ScreenshotAsync(new()
+            {
+                Path = path,
+                FullPage = true
+            });
+
+            Console.WriteLine($"Saved screenshot: {path}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to capture screenshot: {ex.Message}");
+        }
     }
 
     static bool IsDryRun() => Environment.GetEnvironmentVariable("DRY_RUN") == "true";
