@@ -1,0 +1,79 @@
+name: Book Tee Time
+
+on:
+  schedule:
+    # Monday evening (pre-warm before 8 PM local)
+    - cron: '58 1 * * 2'  # 7:58 PM CST Monday ≈ 01:58 UTC Tuesday
+
+  # Manual runs with overrides
+  workflow_dispatch:
+    inputs:
+      golf_days:
+        description: 'Which day(s) to book'
+        required: true
+        default: 'Saturday'
+        type: choice
+        options:
+          - Saturday
+          - Sunday
+          - Both
+
+      start_time:
+        description: 'Earliest tee time (ex: 07:30 am)'
+        required: true
+        default: '07:30 am'
+
+      players:
+        description: 'Number of players'
+        required: true
+        default: '4'
+
+      dry_run:
+        description: 'Dry run (do not finalize booking)'
+        required: false
+        default: false
+        type: boolean
+
+      test_date:
+        description: 'Override booking date (YYYY-MM-DD, optional)'
+        required: false
+
+jobs:
+  book:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release
+
+      - name: Install Playwright Chromium
+        run: pwsh bin/Release/net8.0/playwright.ps1 install chromium
+
+      - name: Run Tee Time Bot
+        env:
+          # Credentials
+          USERNAME: ${{ secrets.USERNAME }}
+          PASSWORD: ${{ secrets.PASSWORD }}
+
+          # Config-driven options
+          GOLF_DAYS: ${{ inputs.golf_days || 'Saturday' }}
+          START_TIME: ${{ inputs.start_time || '07:30 am' }}
+          PLAYERS: ${{ inputs.players || '4' }}
+
+          # Testing controls
+          DRY_RUN: ${{ inputs.dry_run || 'false' }}
+          TEST_DATE: ${{ inputs.test_date }}
+
+        run: dotnet run --configuration Release
