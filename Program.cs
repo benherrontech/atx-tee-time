@@ -8,12 +8,7 @@ public enum GolfDay
 
 public class Program
 {
-    // ----------------------------
-    // Runtime configuration
-    // ----------------------------
-    private const bool Headless = true;
-    private const int SlowMoMs = 0;
-
+    
     // ----------------------------
     // City of Austin URLs
     // ----------------------------
@@ -27,11 +22,28 @@ public class Program
         using var playwright = await Playwright.CreateAsync();
         await using var browser = await playwright.Chromium.LaunchAsync(new()
         {
-            Headless = Headless,
-            SlowMo = SlowMoMs
+            Headless = false,
+            Args = new[]
+            {
+                "--disable-blink-features=AutomationControlled",
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-infobars",
+                "--disable-dev-shm-usage"
+            }
         });
 
-        var context = await browser.NewContextAsync();
+        var context = await browser.NewContextAsync(new()
+        {
+            ViewportSize = new() { Width = 1280, Height = 800 },
+            Locale = "en-US",
+            TimezoneId = "America/Chicago",
+            UserAgent =
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
+                "AppleWebKit/537.36 (KHTML, like Gecko) " +
+                "Chrome/122.0.0.0 Safari/537.36"
+        });
+
         var page = await context.NewPageAsync();
 
         try
